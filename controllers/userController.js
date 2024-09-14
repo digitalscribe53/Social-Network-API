@@ -62,19 +62,18 @@ const userController = {
       .catch((err) => res.status(400).json(err));
   },
 
-  // Delete user
+  // Delete user and remove associated thoughts
   deleteUser({ params }, res) {
     User.findOneAndDelete({ _id: params.id })
       .then((dbUserData) => {
         if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this id!' });
-          return;
+          return res.status(404).json({ message: 'No user found with this id!' });
         }
-        // BONUS: Remove user's associated thoughts
-        return Thought.deleteMany({ _id: { $in: dbUserData.thoughts } });
+        // Remove user's associated thoughts
+        return Thought.deleteMany({ username: dbUserData.username });
       })
       .then(() => {
-        res.json({ message: 'User and associated thoughts deleted!' });
+        res.json({ message: 'User and associated thoughts deleted successfully!' });
       })
       .catch((err) => res.status(400).json(err));
   },

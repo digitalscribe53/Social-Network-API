@@ -38,25 +38,62 @@ const thoughtController = {
       });
   },
 
-  // Create a new thought
-  createThought({ body }, res) {
-    Thought.create(body)
-      .then(({ _id }) => {
-        return User.findOneAndUpdate(
-          { _id: body.userId },
-          { $push: { thoughts: _id } },
-          { new: true }
-        );
-      })
-      .then((dbUserData) => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this id!' });
-          return;
-        }
-        res.json(dbUserData);
-      })
-      .catch((err) => res.json(err));
-  },
+ // Create a new thought
+ createThought({ body }, res) {
+  console.log('Creating thought with body:', body);
+  let createdThought;
+
+  // First, check if the user exists
+  User.findById(body.userId)
+    .then((dbUserData) => {
+      if (!dbUserData) {
+        console.log('User not found:', body.userId);
+        return res.status(404).json({ message: 'No user found with this id. Thought not created.' });
+      }
+      console.log('User found, creating thought');
+      // If user exists, create the thought
+      return Thought.create(body);
+    })
+    .then((dbThoughtData) => {
+      if (!dbThoughtData) {
+        console.log('Failed to create thought');
+        return res.status(400).json({ message: 'Something went wrong creating the thought.' });
+      }
+      console.log('Thought created:', dbThoughtData);
+      createdThought = dbThoughtData;
+      // Update the user's thoughts array
+      return User.findOneAndUpdate(
+        { _id: body.userId },
+        { $push: { thoughts: dbThoughtData._id } },
+        { new: true }
+      );
+    })
+    .then((updatedUserData) => {
+      if (!updatedUserData) {
+        console.log('User not found when updating');
+        // If we can't find the user at this point, we should still return the created thought
+        return res.status(200).json({ 
+          message: 'Thought created but user not found when updating.',
+          thought: createdThought 
+        });
+      }
+      console.log('User updated with new thought');
+      res.status(200).json({ message: 'Thought successfully created!', thought: createdThought });
+    })
+    .catch((err) => {
+      console.error('Error in createThought:', err);
+      // If we've created the thought but encounter an error afterwards, we should still return success
+      if (createdThought) {
+        res.status(200).json({ 
+          message: 'Thought created but an error occurred while updating user.',
+          thought: createdThought,
+          error: err.message
+        });
+      } else {
+        res.status(400).json({ message: 'Error creating thought', error: err.message });
+      }
+    });
+},
 
   // Update thought by id
   updateThought({ params, body }, res) {
@@ -76,8 +113,7 @@ const thoughtController = {
     Thought.findOneAndDelete({ _id: params.id })
       .then((dbThoughtData) => {
         if (!dbThoughtData) {
-          res.status(404).json({ message: 'No thought found with this id!' });
-          return;
+          return res.status(404).json({ message: 'No thought found with this id!' });
         }
         return User.findOneAndUpdate(
           { thoughts: params.id },
@@ -85,11 +121,7 @@ const thoughtController = {
           { new: true }
         );
       })
-      .then((dbUserData) => {
-        if (!dbUserData) {
-          res.status(404).json({ message: 'No user found with this thought!' });
-          return;
-        }
+      .then(() => {
         res.json({ message: 'Thought successfully deleted!' });
       })
       .catch((err) => res.status(400).json(err));
