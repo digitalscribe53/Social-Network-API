@@ -154,6 +154,24 @@ const thoughtController = {
       .then((dbThoughtData) => res.json(dbThoughtData))
       .catch((err) => res.json(err));
   },
+
+  updateReaction({ params, body }, res) {
+    Thought.findOneAndUpdate(
+      { _id: params.thoughtId, 'reactions.reactionId': params.reactionId },
+      { $set: { 'reactions.$.reactionBody': body.reactionBody } },
+      { new: true, runValidators: true }
+    )
+      .then(dbThoughtData => {
+        if (!dbThoughtData) {
+          return res.status(404).json({ message: 'No thought found with this id, or reaction does not exist!' });
+        }
+        res.json(dbThoughtData);
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(400).json(err);
+      });
+  },
 };
 
 module.exports = thoughtController;
