@@ -122,5 +122,5 @@ Once the server is running, you can use tools like [Insomnia](https://insomnia.r
 
 Remember to replace `:userId`, `:thoughtId`, `:friendId`, and `:reactionId` with actual IDs when making requests.
 
-## Video Demo
+## Video 
 [Click to play demonstration video](https://drive.google.com/file/d/1KfAq87g82uUT1DChsS0iGTG5jezvdKsH/view?usp=sharing) 
